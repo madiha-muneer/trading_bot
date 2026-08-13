@@ -43,3 +43,5 @@ class StepsResult:
     top_touches: int
     bottom_touches: int
     width_pct: float
+    exit_breach_atr: float = 0.0
+    exit_direction: str = ""

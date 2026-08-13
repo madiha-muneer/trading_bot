@@ -18,7 +18,7 @@ def main():
         candles = candles[:-1]
 
     print(
-        f"loaded {len(candles)} close daily candles /n {day(candles[0].open_time)} - {day(candles[-1].open_time)} /n"
+        f"loaded {len(candles)} close daily candles \n {day(candles[0].open_time)} - {day(candles[-1].open_time)} \n"
     )
     state = DetectorState()
     periods = []
@@ -54,6 +54,8 @@ def main():
         elif result.changed and not result.regime_on:
             current["end"] = today.open_time
             current["exit"] = result.reason
+            current["breach_atr"] = result.exit_breach_atr
+            current["direction"] = result.exit_direction
             periods.append(current)
 
     # after the loop:
@@ -64,12 +66,15 @@ def main():
     if current is not None:
         current["end"] = candles[-1].open_time
         current["exit"] = "(still on)"
+        current["breach_atr"] = 0.0
+        current["direction"] = ""
         periods.append(current)
 
     # report
     print(
         f"{'#':>2}  {'start':<12}{'end':<12}{'days':>5}  "
-        f"{'band low':>10}{'band high':>11}{'width%':>8}  exit"
+        f"{'band low':>10}{'band high':>11}{'width%':>8}  "
+        f"{'exit' : >10} {'brA':>13} {'Ex_Dir':>8}"
     )
     print("-" * 78)
     total_days = 0
@@ -79,7 +84,8 @@ def main():
         band = period["band"]
         print(
             f"{number:>2}  {day(period['start']):<12}{day(period['end']):<12}{days:>5}  "
-            f"{band.low_price:>10.0f}{band.high_price:>11.0f}{band.width_pct:>8.1f}  {period['exit']}"
+            f"{band.low_price:>10.0f}{band.high_price:>11.0f}{band.width_pct:>8.1f}"
+            f"{period['exit']:>20}  {period['breach_atr']:>5.2f} {period['direction']:>8}"
         )
 
     if periods:
@@ -92,6 +98,30 @@ def main():
             f"({total_days / (len(candles) - config.WINDOW) * 100:.0f}% of history)"
         )
         print("exit causes:", ", ".join(f"{k}={v}" for k, v in sorted(exits.items())))
+
+        print("-" * 78)
+        kills = [p["breach_atr"] for p in periods if "Break" in p["exit"]]
+        if kills:
+            print(
+                f"exit depth (kills): avg {sum(kills)/len(kills):.2f} xATR, "
+                f"max {max(kills):.2f} xATR"
+            )
+
+        down_kills = [
+            p for p in periods if "Break" in p["exit"] and p["direction"] == "down"
+        ]
+        up_kills = [
+            p for p in periods if "Break" in p["exit"] and p["direction"] == "up"
+        ]
+        print(
+            f"kills: {len(up_kills)} up (free for buy-side ladder), {len(down_kills)} down"
+        )
+        if down_kills:
+            d = [p["breach_atr"] for p in down_kills]
+            print(
+                f"down-kill depth: avg {sum(d)/len(d):.2f} xATR, max {max(d):.2f} xATR"
+            )
+
     else:
         print("No regime periods detected. Thresholds are probably too strict.")
 
