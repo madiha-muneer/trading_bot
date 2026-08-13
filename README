@@ -1,0 +1,6 @@
+Sideways Market Detector — v1
+Detects periods where BTC is trading in a sufficiently stable range using a rolling 30-day window, normalized range width, trend, volatility, and state-based regime logic.
+
+#Use raw Python sqlite3 for the market-data database. No SQLAlchemy, no Alembic for V1.
+#When the final bot actually trades, it will trade BTCUSDT Spot 
+#right now cooldown period is 10days to observe market after massive breakout
