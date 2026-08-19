@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
-from detector import step, count_touches
-from models import DetectorState, Band
+from detector import step
+from models.detector_model import DetectorState
 import config, db
 
 

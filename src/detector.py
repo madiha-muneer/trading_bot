@@ -1,5 +1,5 @@
 import config
-from models import Candle, Band, StepsResult, DetectorState
+from models.detector_model import Candle, Band, StepsResult, DetectorState
 
 
 def atr(window: list[Candle], period: int):

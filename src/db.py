@@ -2,7 +2,7 @@ import sqlite3
 from config import SYMBOL, INTERVAL, INTERVAL_MS, DB_FILE
 from datetime import datetime, timezone
 import config
-from models import Candle
+from models.detector_model import Candle
 
 
 def get_con() -> sqlite3.Connection:

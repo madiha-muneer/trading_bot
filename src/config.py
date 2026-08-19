@@ -1,14 +1,16 @@
 from datetime import datetime, timezone
 
 SYMBOL = "BTCUSDT"
-INTERVAL = "1d"
+INTERVAL = "1m"
+# INTERVAL = "1d"
 
 START_DATE = int(datetime(2019, 1, 1, tzinfo=timezone.utc).timestamp() * 1000)
 DB_FILE = "market.db"
 BASE_URL = "https://api.binance.com/api/v3/klines"
 
 LIMIT = 1000
-INTERVAL_MS = 24 * 60 * 60 * 1000
+INTERVAL_MS = 60 * 1000
+# INTERVAL_MS = 24 * 60 * 60 * 1000
 
 # detector window
 WINDOW = 30
@@ -35,3 +37,14 @@ COOLDOWN_DAYS = 10
 SOFT_KILL_ATR = 1.0
 SOFT_KILL_DAYS = 2
 HARD_KILL_ATR = 2.0
+
+
+# strategy requirements(BUY SIDE LADDER)
+LADDER_RUNGS = 5
+CAPITAL_PER_REGIME = 1000.0
+RAMP_ENABLED = True
+RAMP_INITIAL_RUNGS = 2
+RAMP_ADD_EVERY_DAYS = 3
+
+# backtesting
+FEE_RATE = 0.001
