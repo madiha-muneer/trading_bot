@@ -40,6 +40,7 @@ HARD_KILL_ATR = 2.0
 
 
 # strategy requirements(BUY SIDE LADDER)
+PLACEMENT = "band_bottom"
 LADDER_RUNGS = 5
 CAPITAL_PER_REGIME = 1000.0
 RAMP_ENABLED = True

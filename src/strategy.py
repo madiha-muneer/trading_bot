@@ -9,16 +9,33 @@ def _order_id(state: StrategyState, rung: Rung, side: str) -> str:
 
 
 # grid strategy
-def _build_ladder(band: Band, regime_start: int) -> list[Rung]:
+def _build_ladder(band: Band, regime_start: int, anchor_close: float) -> list[Rung]:
     height = band.high_price - band.low_price
     step = height / config.LADDER_RUNGS
-    mid = band.mid
 
-    levels = []
-    level = band.low_price
-    while level <= mid + 1e-9:
-        levels.append(level)
-        level += step
+    if config.PLACEMENT == "band_bottom":
+        levels = []
+        level = band.low_price
+        while level <= band.mid + 1e-9:
+            levels.append(level)
+            level += step
+    elif config.PLACEMENT == "price_anchor":
+        levels = []
+        for i in range(1, config.LADDER_RUNGS + 1):
+            level = anchor_close - i * step
+            if level >= band.low_price - 1e-9:
+                levels.append(level)
+    elif config.PLACEMENT == "full_band":
+        levels = []
+        level = band.low_price
+        while level <= band.high_price - step * 1e-9:
+            levels.append(level)
+            level += step
+    else:
+        raise ValueError(f"unknown PLACEMENT {config.PLACEMENT!r}")
+
+    if not levels:
+        return []
 
     capital_per_rung = config.CAPITAL_PER_REGIME / len(levels)
     return [
@@ -99,7 +116,9 @@ def strategy_step(
             active=True,
             regime_start=candle.open_time,
             rungs=_build_ladder(
-                band=detector_state.frozen_band, regime_start=candle.open_time
+                band=detector_state.frozen_band,
+                regime_start=candle.open_time,
+                anchor_close=candle.close_price,
             ),
             days_in_regime=0,
             realized_profitandlosee=state.realized_profitandlosee,
