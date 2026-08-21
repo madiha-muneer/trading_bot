@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
-from detector import step
-from models.detector_model import DetectorState
-import config, db
+from src.detector import step
+from src.models.detector_model import DetectorState
+from src import config, db
 
 
 def day(ms: int) -> str:

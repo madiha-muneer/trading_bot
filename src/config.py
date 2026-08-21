@@ -1,16 +1,16 @@
 from datetime import datetime, timezone
 
 SYMBOL = "BTCUSDT"
-INTERVAL = "1m"
-# INTERVAL = "1d"
+# INTERVAL = "1m"
+INTERVAL = "1d"
 
 START_DATE = int(datetime(2019, 1, 1, tzinfo=timezone.utc).timestamp() * 1000)
 DB_FILE = "market.db"
 BASE_URL = "https://api.binance.com/api/v3/klines"
 
 LIMIT = 1000
-INTERVAL_MS = 60 * 1000
-# INTERVAL_MS = 24 * 60 * 60 * 1000
+# INTERVAL_MS = 60 * 1000
+INTERVAL_MS = 24 * 60 * 60 * 1000
 
 # detector window
 WINDOW = 30
@@ -48,3 +48,4 @@ RAMP_ADD_EVERY_DAYS = 3
 
 # backtesting
 FEE_RATE = 0.001
+SLIPPAGE_MARKET = 0.0005

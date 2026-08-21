@@ -1,6 +1,6 @@
-import config
-from models.detector_model import Candle
-from models.strategy_model import Fill, Order
+from src import config
+from src.models.detector_model import Candle
+from src.models.strategy_model import Fill, Order
 
 
 def simulate_fills(

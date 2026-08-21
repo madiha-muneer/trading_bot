@@ -1,12 +1,11 @@
 import sqlite3
-from config import SYMBOL, INTERVAL, INTERVAL_MS, DB_FILE
+from src.config import SYMBOL, INTERVAL, INTERVAL_MS, DB_FILE
 from datetime import datetime, timezone
-import config
-from models.detector_model import Candle
+from src.models.detector_model import Candle
 
 
 def get_con() -> sqlite3.Connection:
-    return sqlite3.connect(config.DB_FILE)
+    return sqlite3.connect(DB_FILE)
 
 
 def get_db() -> sqlite3.Connection:

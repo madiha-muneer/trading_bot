@@ -1,13 +1,14 @@
-import config
+from src import config
 from dataclasses import replace
-from models.detector_model import Band, Candle, DetectorState, StepsResult
-from models.strategy_model import Order, Rung, StrategyState, Fill
+from src.models.detector_model import Band, Candle, DetectorState, StepsResult
+from src.models.strategy_model import Order, Rung, StrategyState, Fill
 
 
 def _order_id(state: StrategyState, rung: Rung, side: str) -> str:
     return f"{state.regime_start}-r{rung.index}-c{rung.cycles}-{side}"
 
 
+# grid strategy
 def _build_ladder(band: Band, regime_start: int) -> list[Rung]:
     height = band.high_price - band.low_price
     step = height / config.LADDER_RUNGS
