@@ -50,3 +50,6 @@ RAMP_ADD_EVERY_DAYS = 3
 # backtesting
 FEE_RATE = 0.001
 SLIPPAGE_MARKET = 0.0005
+
+# anchor days
+REANCHOR_DAYS = None

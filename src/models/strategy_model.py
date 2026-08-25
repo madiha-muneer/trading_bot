@@ -27,6 +27,7 @@ class Rung:
     status: str = "idle"
     cycles: int = 0
     buy_fee: float = 0.0
+    current_order_id: str = ""
 
 
 @dataclass
@@ -38,3 +39,5 @@ class StrategyState:
     realized_profitandlosee: float = 0.0
     fees_paid: float = 0.0
     open_order_ids: list[str] = field(default_factory=list)
+    days_since_buy_fill: int = 0
+    anchor_gen: int = 0

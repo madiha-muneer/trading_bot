@@ -3,8 +3,8 @@ import time
 import requests
 import sqlite3
 
-from config import SYMBOL, INTERVAL, START_DATE, BASE_URL, LIMIT, INTERVAL_MS
-from db import get_db, last_stored_open_time, store_batch_klines, check_gaps
+from src.config import SYMBOL, INTERVAL, START_DATE, BASE_URL, LIMIT, INTERVAL_MS
+from src.db import get_db, last_stored_open_time, store_batch_klines, check_gaps
 
 
 def fetch_batch_klines(start_time: int) -> list[list]:

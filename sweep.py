@@ -27,9 +27,10 @@ from src.strategy import strategy_step
 
 # ---------------- what we sweep ----------------
 
-PLACEMENTS = ["band_bottom", "price_anchor", "full_band"]
-RUNGS = [4, 6, 8]
-RAMP = [True, False]
+PLACEMENTS = ["price_anchor"]
+RUNGS = [4, 5, 6]
+RAMP = [True]
+REANCHOR = [None, 3, 5]
 
 # chronological splits: train, validate. 2026 stays untouched (final test).
 SPLITS = {
@@ -155,16 +156,17 @@ def main() -> None:
     if daily and day_str(daily[-1].open_time) == today_utc:
         daily = daily[:-1]
 
-    variants = list(itertools.product(PLACEMENTS, RUNGS, RAMP))
+    variants = list(itertools.product(PLACEMENTS, RUNGS, RAMP, REANCHOR))
     print(f"{len(variants)} variants x {len(SPLITS)} splits\n")
 
     rows = []
     t0 = time.time()
-    for n, (placement, rungs, ramp) in enumerate(variants, 1):
+    for n, (placement, rungs, ramp, reanchor) in enumerate(variants, 1):
         # apply the variant (single-threaded, restored implicitly next loop)
         config.PLACEMENT = placement
         config.LADDER_RUNGS = rungs
         config.RAMP_ENABLED = ramp
+        config.REANCHOR_DAYS = reanchor
 
         res = {}
         for split_name, (d_from, d_to) in SPLITS.items():
@@ -175,11 +177,12 @@ def main() -> None:
                 "placement": placement,
                 "rungs": rungs,
                 "ramp": ramp,
+                "reanchor": reanchor,
                 **{f"{s}_{k}": v for s, r in res.items() for k, v in r.items()},
             }
         )
         print(
-            f"[{n}/{len(variants)}] {placement:<13} rungs={rungs} ramp={ramp}  "
+            f"[{n}/{len(variants)}] {placement:<13} rungs={rungs} ramp={ramp} reanchor={reanchor}  "
             f"train {res['train'].get('per_day', 0):+.3f}%/d  "
             f"val {res['validate'].get('per_day', 0):+.3f}%/d  "
             f"({time.time() - t0:.0f}s)"
@@ -200,14 +203,14 @@ def main() -> None:
     )
 
     print(
-        f"\n{'placement':<13}{'rungs':>6}{'ramp':>6}"
+        f"\n{'placement':<13}{'rungs':>6}{'ramp':>6}{'reanchor':>10}"
         f"{'train%/d':>10}{'val%/d':>9}{'trainDD':>9}{'valDD':>8}"
         f"{'cycles':>8}{'worst':>8}  pass"
     )
     print("-" * 88)
     for r in rows:
         print(
-            f"{r['placement']:<13}{r['rungs']:>6}{str(r['ramp']):>6}"
+            f"{r['placement']:<13}{r['rungs']:>6}{str(r['ramp']):>6}{str(r['reanchor']):>10}"
             f"{r.get('train_per_day', 0):>10.3f}{r.get('validate_per_day', 0):>9.3f}"
             f"{r.get('train_max_dd', 0):>9.1f}{r.get('validate_max_dd', 0):>8.1f}"
             f"{r.get('train_cycles', 0) + r.get('validate_cycles', 0):>8}"

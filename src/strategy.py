@@ -5,7 +5,9 @@ from src.models.strategy_model import Order, Rung, StrategyState, Fill
 
 
 def _order_id(state: StrategyState, rung: Rung, side: str) -> str:
-    return f"{state.regime_start}-r{rung.index}-c{rung.cycles}-{side}"
+    return (
+        f"{state.regime_start}g{state.anchor_gen}-r{rung.index}-c{rung.cycles}-{side}"
+    )
 
 
 # grid strategy
@@ -28,7 +30,7 @@ def _build_ladder(band: Band, regime_start: int, anchor_close: float) -> list[Ru
     elif config.PLACEMENT == "full_band":
         levels = []
         level = band.low_price
-        while level <= band.high_price - step * 1e-9:
+        while level <= band.high_price - step + 1e-9:
             levels.append(level)
             level += step
     else:
@@ -74,6 +76,7 @@ def strategy_step(
         state.fees_paid += f.fee
 
         if f.order_id.endswith("-buy"):
+            state.days_since_buy_fill = 0
             rung.status = "holding"
             rung.buy_fee = f.fee
 
@@ -130,6 +133,59 @@ def strategy_step(
 
     # normal ON days
     state.days_in_regime += 1
+    state.days_since_buy_fill += 1
+    band = detector_state.frozen_band
+    step_px = (band.high_price - band.low_price) / config.LADDER_RUNGS
+
+    if config.REANCHOR_DAYS and state.days_since_buy_fill >= config.REANCHOR_DAYS:
+        free = [r for r in state.rungs if r.status in ("idle", "buy_open")]
+        if free:
+            highest_free = max(r.buy_price for r in free)
+            if candle.close_price >= highest_free + step_px:  # price ran away upward
+                # 1) cancel the stale resting buys
+                for r in free:
+                    if r.status == "buy_open":
+                        orders.append(
+                            Order(
+                                id=r.current_order_id,
+                                kind="cancel",
+                                price=0.0,
+                                quantity=0.0,
+                            )
+                        )
+                        if r.current_order_id in state.open_order_ids:
+                            state.open_order_ids.remove(r.current_order_id)
+                # 2) new levels below TODAY'S price, capped at band mid, floored at band low
+                new_levels = []
+                for i in range(1, config.LADDER_RUNGS + 1):
+                    lvl = candle.close_price - i * step_px
+                    if band.low_price - 1e-9 <= lvl <= band.mid + 1e-9:
+                        new_levels.append(lvl)
+                # 3) rebuild ONLY the free rungs (held ones keep their sells untouched)
+                state.anchor_gen += 1
+                kept = [r for r in state.rungs if r.status in ("holding", "sell_open")]
+                rebuilt = [
+                    Rung(
+                        index=i,
+                        buy_price=lvl,
+                        sell_price=lvl + step_px,
+                        quantity=(config.CAPITAL_PER_REGIME / config.LADDER_RUNGS)
+                        / lvl,
+                        deployed=True,
+                        status="idle",
+                    )
+                    for i, lvl in enumerate(sorted(new_levels))
+                    if i < len(free)  # never more rungs than freed slots
+                ]
+                # avoid index clashes with kept rungs
+                taken = {r.index for r in kept}
+                for r in rebuilt:
+                    while r.index in taken:
+                        r.index += config.LADDER_RUNGS
+                    taken.add(r.index)
+                state.rungs = kept + rebuilt
+                state.days_since_buy_fill = 0
+
     allowed = deployed_count(
         days_in_regime=state.days_in_regime, total_rung=len(state.rungs)
     )
@@ -142,6 +198,7 @@ def strategy_step(
 
         if rung.status == "idle":
             odr_id = _order_id(state=state, rung=rung, side="buy")
+            rung.current_order_id = odr_id
             orders.append(
                 Order(
                     id=odr_id,
@@ -154,6 +211,7 @@ def strategy_step(
             rung.status = "buy_open"
         elif rung.status == "holding":
             odr_id = _order_id(state=state, rung=rung, side="sell")
+            rung.current_order_id = odr_id
             orders.append(
                 Order(
                     id=odr_id,
@@ -172,6 +230,6 @@ def _find_rung_by_order(state: StrategyState, order_id: str) -> Rung | None:
     try:
         rung_part = order_id.split("-")[1]
         idx = int(rung_part[1:])
-        return state.rungs[idx]
+        return next((r for r in state.rungs if r.index == idx), None)
     except (IndexError, ValueError):
         return None
