@@ -18,7 +18,7 @@ def main():
         candles = candles[:-1]
 
     print(
-        f"loaded {len(candles)} close daily candles \n {day(candles[0].open_time)} - {day(candles[-1].open_time)} \n"
+        f"loaded {len(candles)} {config.INTERVAL} candles \n {day(candles[0].open_time)} - {day(candles[-1].open_time)} \n"
     )
     state = DetectorState()
     periods = []
@@ -55,8 +55,10 @@ def main():
             current["end"] = today.open_time
             current["exit"] = result.reason
             current["breach_atr"] = result.exit_breach_atr
+            current["exit_atr_pct"] = result.atr_pct
             current["direction"] = result.exit_direction
             periods.append(current)
+            current = None
 
     # after the loop:
     n = tally["n"]
@@ -67,6 +69,7 @@ def main():
         current["end"] = candles[-1].open_time
         current["exit"] = "(still on)"
         current["breach_atr"] = 0.0
+        current["exit_atr_pct"] = 0.0
         current["direction"] = ""
         periods.append(current)
 
@@ -107,19 +110,47 @@ def main():
                 f"max {max(kills):.2f} xATR"
             )
 
+        completed = [p for p in periods if p["exit"] != "(still on)"]
+
         down_kills = [
-            p for p in periods if "Break" in p["exit"] and p["direction"] == "down"
+            p for p in completed if "Break" in p["exit"] and p["direction"] == "down"
         ]
+
         up_kills = [
-            p for p in periods if "Break" in p["exit"] and p["direction"] == "up"
+            p for p in completed if "Break" in p["exit"] and p["direction"] == "up"
         ]
         print(
             f"kills: {len(up_kills)} up (free for buy-side ladder), {len(down_kills)} down"
         )
         if down_kills:
+            down_kill_pcts = [p["breach_atr"] * p["exit_atr_pct"] for p in down_kills]
+            avg_down_kill_pct = sum(down_kill_pcts) / len(down_kill_pcts)
+            max_down_kill_pct = max(down_kill_pcts)
+
+            print(
+                f"down-kill depth: avg {avg_down_kill_pct:.2f}%, "
+                f"max {max_down_kill_pct:.2f}%"
+            )
+
             d = [p["breach_atr"] for p in down_kills]
             print(
                 f"down-kill depth: avg {sum(d)/len(d):.2f} xATR, max {max(d):.2f} xATR"
+            )
+            total_completed_days = sum(
+                int((p["end"] - p["start"]) / (24 * 3600 * 1000)) for p in completed
+            )
+
+            avg_period_days = total_completed_days / len(completed)
+
+            hurdle_equivalent = (
+                (len(down_kills) / len(completed))
+                * (avg_down_kill_pct + 2.0)
+                / avg_period_days
+            )
+
+            print(
+                f"hurdle-equivalent gross kill cost: "
+                f"{hurdle_equivalent:.3f}% / ON-day"
             )
 
     else:
